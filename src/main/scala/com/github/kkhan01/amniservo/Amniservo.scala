@@ -11,14 +11,24 @@ object Amniserver {
 
     while (true) {
       val s = bind.accept()
-      val in = new BufferedSource(s.getInputStream()).getLines()
-      val out = new PrintStream(s.getOutputStream())
+      try {
+        while(true){
+          val in = new BufferedSource(s.getInputStream()).getLines()
+          val out = new PrintStream(s.getOutputStream())
 
-      val input = in.next()
-      println(input)
-      out.println(input)
-      out.flush()
-      s.close()
+          val input = in.next()
+          println(input)
+          out.println(input)
+          out.flush()
+        }
+      } catch {
+        case err: java.util.NoSuchElementException => s.close()
+        case err: Throwable =>{
+          s.close()
+          println("Debug: unknown error:")
+          println(err)
+        }
+      }
     }
   }
 }
