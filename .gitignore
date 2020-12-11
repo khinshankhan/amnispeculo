@@ -1,2 +1,21 @@
+# General
 *.class
 *.log
+
+# SBT
+dist/*
+target/
+project/target/
+project/boot/
+project/plugins/project/
+.history
+.cache
+.cache-main
+
+# Editor
+.bsp/
+.metals/
+.bloop/
+project/metals.sbt
+.scala_dependencies
+.worksheet
