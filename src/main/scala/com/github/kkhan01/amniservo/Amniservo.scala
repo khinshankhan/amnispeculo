@@ -7,9 +7,9 @@ import akka.actor.{Actor, ActorSystem, Props}
 import com.github.kkhan01.amniservo.actors.ConnectionActor
 
 class Amniservo {
-  var methods = scala.collection.mutable.Map[String, String]()
+  var methods = scala.collection.mutable.Map[String, (String) => String]()
 
-  def add(key: String, value: String): Unit = {
+  def add(key: String, value: (String) => String): Unit = {
     if (methods.contains(key)) {
       printf("Debug: Failed to add key: %s\n", key)
     }
@@ -19,7 +19,9 @@ class Amniservo {
   }
 
   def start(): Unit = {
-    println(methods)
+    val immutableMethods = collection.immutable.HashMap() ++ methods
+    println(immutableMethods)
+
     val system = ActorSystem("ConnectionSystem")
 
     val PORT = 9999
@@ -27,7 +29,7 @@ class Amniservo {
 
     while (true) {
       val connection: java.net.Socket = bind.accept()
-      val actor = system.actorOf(Props[ConnectionActor])
+      val actor = system.actorOf(Props(classOf[ConnectionActor], immutableMethods))
       actor ! connection
     }
   }

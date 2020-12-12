@@ -7,7 +7,7 @@ import scala.io.BufferedSource
 
 import akka.actor.{Actor, PoisonPill}
 
-class ConnectionActor extends Actor {
+class ConnectionActor(methods: scala.collection.immutable.Map[String, (String) => String]) extends Actor {
   var connection: java.net.Socket = _
   var in: Iterator[String] = _
   var out: java.io.PrintStream = _
@@ -23,13 +23,13 @@ class ConnectionActor extends Actor {
   }
 
   // TODO: refactor out to rest vs stream
-  def process() = {
+  def process(f: (String) => String) = {
     try {
       while(true){
         val input = in.next()
         messages += input
         println(messages)
-        out.println(input)
+        out.println(f(input))
         out.flush()
       }
     } catch {
@@ -66,7 +66,7 @@ class ConnectionActor extends Actor {
 
       val valid = validate()
       if (valid) {
-        process()
+        process(methods("1"))
       } else {
         val _: Unit = invalid()
         self ! PoisonPill
