@@ -25,13 +25,19 @@ class ConnectionActor(methods: scala.collection.immutable.Map[String, (String) =
   // TODO: refactor out to rest vs stream
   def process(f: (String) => String) = {
     try {
-      while(true){
-        val input = in.next()
-        messages += input
-        println(messages)
-        out.println(f(input))
-        out.flush()
-      }
+      // while(true){
+      //   val input = in.next()
+      //   messages += input
+      //   println(messages)
+      //   out.println(f(input))
+      //   out.flush()
+      // }
+      val res = """HTTP/1.0 200 OK
+
+<html><body><h1>My First Heading</h1><p>My first paragraph.</p></body></html>"""
+      out.println(res)
+      connection.close()
+      self ! PoisonPill
     } catch {
       case err: java.util.NoSuchElementException => {
         connection.close()
