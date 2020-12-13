@@ -1,14 +1,14 @@
-package com.github.kkhan01.amniservo
+package com.github.kkhan01.amniscite
 
 import com.github.kkhan01.amniservo.Amniservo
+import com.github.kkhan01.amniscite.Handler
 
 object Main {
   def reverse(x: String) = x.reverse
 
   def main(args: Array[String]): Unit = {
-    println("Hello from Main!")
     val server = new Amniservo
-    server.add("1", reverse)
-    val _: Unit = server.start()
+    Handler.setup(server)
+    server.start()
   }
 }
