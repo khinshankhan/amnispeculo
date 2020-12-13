@@ -16,9 +16,15 @@ object Helpers {
           .split("&")
         nameValuePairs.foreach(kv => {
                                  val valueIndex = kv.indexOf('=')
-                                 val key = kv.substring(0, valueIndex)
-                                 val value = kv.substring(valueIndex + 1)
-                                 queryParams = queryParams + (key -> value)
+                                 if (valueIndex != -1){
+                                   val key = kv.substring(0, valueIndex)
+                                   val value = kv.substring(valueIndex + 1)
+                                   queryParams = queryParams + (key -> value)
+                                 } else {
+                                   val key = kv
+                                   val value = ""
+                                   queryParams = queryParams + (key -> value)
+                                 }
                                })
         return(url, queryParams)
       } else {

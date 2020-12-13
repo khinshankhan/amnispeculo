@@ -1,7 +1,7 @@
 package com.github.kkhan01.amniservo.actors
 
 import java.net.Socket
-import java.io.PrintStream
+import java.io.{PrintStream, PrintWriter, StringWriter}
 
 import scala.io.BufferedSource
 
@@ -37,7 +37,9 @@ class ConnectionActor(methods: Map[String, (Map[String, String]) => String]) ext
       case err: Throwable =>{
         println("Debug: unknown error:")
         println(err)
-        invalid(err)
+        val sw = new StringWriter
+        err.printStackTrace(new PrintWriter(sw))
+        invalid(sw.toString)
       }
     }
   }
