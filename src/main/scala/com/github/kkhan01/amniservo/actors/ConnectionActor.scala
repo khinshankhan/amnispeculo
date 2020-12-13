@@ -7,12 +7,12 @@ import scala.io.BufferedSource
 
 import akka.actor.{Actor, PoisonPill}
 
-class ConnectionActor(methods: scala.collection.immutable.Map[String, (String) => String]) extends Actor {
+import com.github.kkhan01.amniservo.utils.Helpers
+
+class ConnectionActor(methods: Map[String, (Map[String, String]) => String]) extends Actor {
   var connection: java.net.Socket = _
   var in: Iterator[String] = _
   var out: java.io.PrintStream = _
-
-  var messages: String = ""
 
   override def preStart(): Unit = {
     println("Started connection.")
@@ -23,45 +23,51 @@ class ConnectionActor(methods: scala.collection.immutable.Map[String, (String) =
   }
 
   // TODO: refactor out to rest vs stream
-  def process(f: (String) => String) = {
+  def process(f: (Map[String, String]) => String, qP: Map[String, String]) = {
     try {
-      // while(true){
-      //   val input = in.next()
-      //   messages += input
-      //   println(messages)
-      //   out.println(f(input))
-      //   out.flush()
-      // }
       val res = """HTTP/1.0 200 OK
 
-<html><body><h1>My First Heading</h1><p>My first paragraph.</p></body></html>"""
-      out.println(res)
-      connection.close()
-      self ! PoisonPill
+"""
+      out.println(res + f(qP))
+      close()
     } catch {
       case err: java.util.NoSuchElementException => {
-        connection.close()
-        self ! PoisonPill
+        close()
       }
       case err: Throwable =>{
-        connection.close()
         println("Debug: unknown error:")
         println(err)
-        self ! PoisonPill
+        invalid(err)
       }
     }
   }
 
   // TODO: refactor out to an actor
-  def validate(): Boolean = {
+  def validate(): (Boolean, (Map[String, String]) => String, Map[String, String]) = {
     val input = in.next()
-    printf("Validating: %s\n", input)
-    return true
+
+    val(url, queryParams) = Helpers.parseHeader(input)
+    if (methods.contains(url)){
+      return (true, methods(url), queryParams)
+    } else if (methods.contains("_")){
+      return (true, methods("_"), queryParams)
+    }
+
+    return (false, (_: Map[String, String]) => "", queryParams)
   }
 
-  // TODO: return http error
-  def invalid(): Unit = {
-    out.println("Invalid resource!")
+  def invalid(err: String): Unit = {
+    // TODO: implement real 500 http error
+    val res = """HTTP/1.0 200 OK
+
+"""
+    out.println(res + err)
+    close()
+  }
+
+  def close(): Unit = {
+    connection.close()
+    self ! PoisonPill
   }
 
   def receive = {
@@ -70,12 +76,11 @@ class ConnectionActor(methods: scala.collection.immutable.Map[String, (String) =
       in = new BufferedSource(connection.getInputStream()).getLines()
       out = new PrintStream(connection.getOutputStream())
 
-      val valid = validate()
+      val (valid, fn, qP) = validate()
       if (valid) {
-        process(methods("1"))
+        process(fn, qP)
       } else {
-        val _: Unit = invalid()
-        self ! PoisonPill
+        invalid("Invalid route.")
       }
     }
     case _ => println("Debug: something went wrong, socket wasn't passed in.")
