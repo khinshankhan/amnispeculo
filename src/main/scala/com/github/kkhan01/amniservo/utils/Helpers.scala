@@ -7,30 +7,42 @@ object Helpers {
     println(header)
     val protocol = header.split(" ")
     // TODO: allow other types of methods
-    if(protocol(0) == "GET"){
-      val queryIndex = protocol(1).indexOf('?')
-      if(queryIndex != -1){
-        val url = protocol(1).substring(protocol(1).indexOf('/'), queryIndex)
-        val nameValuePairs = protocol(1)
-          .substring(queryIndex + 1)
-          .split("&")
-        nameValuePairs.foreach(kv => {
-                                 val valueIndex = kv.indexOf('=')
-                                 if (valueIndex != -1){
-                                   val key = kv.substring(0, valueIndex)
-                                   val value = kv.substring(valueIndex + 1)
-                                   queryParams = queryParams + (key -> value)
-                                 } else {
-                                   val key = kv
-                                   val value = ""
-                                   queryParams = queryParams + (key -> value)
-                                 }
-                               })
-        return(url, queryParams)
-      } else {
-        return (protocol(1).substring(protocol(1).indexOf('/')), queryParams)
+    protocol(0) match {
+      case "GET" => {
+        val queryIndex = protocol(1).indexOf('?')
+        if(queryIndex != -1){
+          val url = protocol(1).substring(protocol(1).indexOf('/'), queryIndex)
+          val queryString = protocol(1).substring(queryIndex + 1)
+          queryParams = getParams(queryString)
+          return(url, queryParams)
+        } else {
+          return (protocol(1).substring(protocol(1).indexOf('/')), queryParams)
+        }
       }
+      case "POST" => {
+        println("POSTING!")
+        return ("_", queryParams)
+      }
+      case _ => return ("_", queryParams)
     }
-    return ("_", queryParams)
+  }
+
+  def getParams(queryString: String): Map[String, String] = {
+    var queryParams = scala.collection.mutable.Map[String, String]()
+
+    val nameValuePairs = queryString.split("&")
+    nameValuePairs.foreach(kv => {
+                             val valueIndex = kv.indexOf('=')
+                             if (valueIndex != -1){
+                               val key = kv.substring(0, valueIndex)
+                               val value = kv.substring(valueIndex + 1)
+                               queryParams = queryParams + (key -> value)
+                             } else {
+                               val key = kv
+                               val value = ""
+                               queryParams += (key -> value)
+                             }
+                           })
+    return collection.immutable.HashMap() ++ queryParams
   }
 }
