@@ -29,6 +29,7 @@ class ConnectionActor(methods: Map[String, (Map[String, String]) => String]) ext
 
 """
       out.println(res + f(qP))
+      // TODO: other methods probably have more input to read
       close()
     } catch {
       case err: java.util.NoSuchElementException => {
@@ -78,13 +79,23 @@ class ConnectionActor(methods: Map[String, (Map[String, String]) => String]) ext
       in = new BufferedSource(connection.getInputStream()).getLines()
       out = new PrintStream(connection.getOutputStream())
 
-      val (valid, fn, qP) = validate()
-      if (valid) {
-        process(fn, qP)
-      } else {
-        invalid("Invalid route.")
+      try{
+        val (valid, fn, qP) = validate()
+        if (valid) {
+          process(fn, qP)
+        } else {
+          invalid("Invalid route.")
+        }
+      } catch{
+        case err: Throwable => {
+          println("Debug: validation went wrong.")
+          println(err)
+        }
       }
     }
-    case _ => println("Debug: something went wrong, socket wasn't passed in.")
+    case err: Throwable => {
+      println("Debug: something went wrong, socket wasn't passed in.")
+      println(err)
+    }
   }
 }
