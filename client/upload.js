@@ -8,18 +8,22 @@ input.addEventListener("change", async e => {
 
   const fd = new FormData();
   const file = e.target.files[0];
-  fd.append(e.target.name, file, file.name);
+  fd.append("file", file, file.name);
 
-  await getBase64(file, async base64Image => {
-    const res = await fetch("http://localhost:9999/log?img=" + base64Image, {
-      method: "GET"
-    });
-    console.log(res);
-  });
+  const reader = new FileReader();
+  reader.onload = async event => {
+    const filecontents = window.btoa(event.target.result);
+    updateStatus("http:localhost:9999/log?img=" + filecontents, file.name);
+  };
+  reader.onerror = error => reject(error);
+  reader.readAsText(file);
 });
 
-const getBase64 = async (file, callback) => {
-  const reader = new FileReader();
-  reader.addEventListener("load", async () => await callback(reader.result));
-  reader.readAsDataURL(file);
+const updateStatus = (link, linkname) => {
+  const li = document.createElement("a");
+  const a = document.createElement("a");
+  a.setAttribute("href", link);
+  a.innerHTML = linkname;
+  li.appendChild(a);
+  ul.appendChild(li);
 };

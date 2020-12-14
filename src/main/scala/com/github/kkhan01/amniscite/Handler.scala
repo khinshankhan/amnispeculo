@@ -16,15 +16,10 @@ object Handler {
   }
 
   def log(queryParams: Map[String, String]): String = {
-    if (queryParams.contains("img")) {
-      val decoded = Base64.getDecoder().decode(queryParams("img"))
-      val img = new String(decoded, StandardCharsets.UTF_8)
-      println(img)
-      return img
-    }
-    else {
-      throw new Exception("No image string found.");
-    }
+    val decoded = Base64.getDecoder().decode(queryParams("img"))
+    val str = new String(decoded, StandardCharsets.UTF_8)
+    println(str)
+    return str
   }
 
   def setup(server: com.github.kkhan01.amniservo.Amniservo) = {
