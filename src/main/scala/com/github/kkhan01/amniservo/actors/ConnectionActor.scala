@@ -58,12 +58,12 @@ class ConnectionActor(methods: Map[String, (Map[String, String]) => String]) ext
           readingHeadersP = false
         } else {
           rawHeaders += input + "\n"
-          // println(input) // NOTE: sanity logging
+          println(input) // NOTE: sanity logging
         }
       }
 
       val headers = getParams(rawHeaders, "\n", ": ")
-      println(headers)
+      // for ((k,v) <- headers) printf("key: %s, value: %s.\n", k, v)
 
       val protocol = header.split(" ")
       var params = Map[String, String]()
@@ -82,12 +82,39 @@ class ConnectionActor(methods: Map[String, (Map[String, String]) => String]) ext
         }
         case "POST" => {
           var data = ""
-          while(in.ready()){
-            data += in.read().asInstanceOf[Char]
+          if(headers.contains("Content-Type") && headers("Content-Type").indexOf("multipart/form-data") >= 0){
+            val boundary = headers("Content-Type").split("boundary=")(1).replaceAll("-", "")
+            var rawData = ""
+            var readingDataP = true
+            while(readingDataP){
+              var input = in.readLine()
+              if(input == "") {
+                readingDataP = false
+              }
+            }
+            readingDataP = true
+            while(readingDataP){
+              var input = in.readLine()
+              if(input.indexOf(boundary) > 0) {
+                readingDataP = false
+              } else {
+                data += input + "\n"
+              }
+            }
+          } else {
+            while(in.ready()){
+              data += in.read().asInstanceOf[Char]
+            }
           }
-          print("DATA FROM POST:")
-          println(data) // NOTE: sanity logging
-          params = getParams(data, "&", "=")
+          // println(data) // NOTE: sanity logging
+          // params = getParams(data, "&", "=")
+          val queryIndex = protocol(1).indexOf('?')
+          if(queryIndex != -1){
+            val url = protocol(1).substring(protocol(1).indexOf('/'), queryIndex)
+            val queryString = protocol(1).substring(queryIndex + 1)
+            params = getParams(queryString, "&", "=")
+          }
+          params = params + ("file" -> data)
           protocol(1).substring(protocol(1).indexOf('/'))
         }
         case _ => "_"
