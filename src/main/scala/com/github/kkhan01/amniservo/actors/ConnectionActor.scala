@@ -1,97 +1,108 @@
 package com.github.kkhan01.amniservo.actors
 
 import java.net.Socket
+
 import java.io.{PrintStream, PrintWriter, StringWriter}
 
 import scala.io.BufferedSource
 
 import akka.actor.{Actor, PoisonPill}
 
-import com.github.kkhan01.amniservo.utils.Helpers
+import java.io.{BufferedReader, BufferedWriter, InputStreamReader, OutputStreamWriter}
 
 class ConnectionActor(methods: Map[String, (Map[String, String]) => String]) extends Actor {
-  var connection: java.net.Socket = _
-  var in: Iterator[String] = _
-  var out: java.io.PrintStream = _
-
   override def preStart(): Unit = {
-    println("Started connection.")
+    println("Started validation.")
   }
 
   override def postStop(): Unit = {
-    println("Killed connection.")
+    println("Ended validation.")
   }
 
-  // TODO: refactor out to rest vs stream
-  def process(f: (Map[String, String]) => String, qP: Map[String, String]) = {
-    try {
-      val res = """HTTP/1.0 200 OK
+  def getParams(queryString: String, splitDelimiter: String, keyDelimiter: String): Map[String, String] = {
+    var params = scala.collection.mutable.Map[String, String]()
 
-"""
-      out.println(res + f(qP))
-      // TODO: other methods probably have more input to read
-      close()
-    } catch {
-      case err: java.util.NoSuchElementException => {
-        close()
-      }
-      case err: Throwable =>{
-        println("Debug: unknown error:")
-        println(err)
-        val sw = new StringWriter
-        err.printStackTrace(new PrintWriter(sw))
-        invalid(sw.toString)
-      }
-    }
+    val nameValuePairs = queryString.split(splitDelimiter)
+    nameValuePairs.foreach(kv => {
+                             val valueIndex = kv.indexOf(keyDelimiter)
+                             if (valueIndex != -1){
+                               val key = kv.substring(0, valueIndex)
+                               val value = kv.substring(valueIndex + 1)
+                               params = params + (key -> value)
+                             } else {
+                               val key = kv
+                               val value = ""
+                               params += (key -> value)
+                             }
+                           })
+    return collection.immutable.HashMap() ++ params
   }
 
-  // TODO: refactor out to an actor
-  def validate(): (Boolean, (Map[String, String]) => String, Map[String, String]) = {
-    val input = in.next()
+  // TODO: implement real 500 http error
+  def invalid(params: Map[String, String]): String = "Invalid route."
 
-    val(url, queryParams) = Helpers.parseHeader(input)
-    if (methods.contains(url)){
-      return (true, methods(url), queryParams)
-    } else if (methods.contains("_")){
-      return (true, methods("_"), queryParams)
-    }
-
-    return (false, (_: Map[String, String]) => "", queryParams)
-  }
-
-  def invalid(err: String): Unit = {
-    // TODO: implement real 500 http error
-    val res = """HTTP/1.0 200 OK
-
-"""
-    out.println(res + err)
-    close()
-  }
-
-  def close(): Unit = {
-    connection.close()
-    self ! PoisonPill
-  }
+  def send(s: String): String = "HTTP/1.0 200 OK\n\r\n" + s
 
   def receive = {
     case socket: java.net.Socket => {
-      connection = socket
-      in = new BufferedSource(connection.getInputStream()).getLines()
-      out = new PrintStream(connection.getOutputStream())
+      val in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+      val out = new PrintStream(socket.getOutputStream())
 
-      try{
-        val (valid, fn, qP) = validate()
-        if (valid) {
-          process(fn, qP)
+      var header = in.readLine()
+      // println(header) // NOTE: sanity logging
+      var rawHeaders = ""
+      var readingHeadersP = true
+      while(readingHeadersP){
+        var input = in.readLine()
+        if(input == "") {
+          readingHeadersP = false
         } else {
-          invalid("Invalid route.")
-        }
-      } catch{
-        case err: Throwable => {
-          println("Debug: validation went wrong.")
-          println(err)
+          rawHeaders += input + "\n"
+          // println(input) // NOTE: sanity logging
         }
       }
+
+      val headers = getParams(rawHeaders, "\n", ": ")
+      println(headers)
+
+      val protocol = header.split(" ")
+      var params = Map[String, String]()
+      // TODO: allow other types of methods
+      val url = protocol(0) match {
+        case "GET" => {
+          val queryIndex = protocol(1).indexOf('?')
+          if(queryIndex != -1){
+            val url = protocol(1).substring(protocol(1).indexOf('/'), queryIndex)
+            val queryString = protocol(1).substring(queryIndex + 1)
+            params = getParams(queryString, "&", "=")
+            url
+          } else {
+            protocol(1).substring(protocol(1).indexOf('/'))
+          }
+        }
+        case "POST" => {
+          var data = ""
+          while(in.ready()){
+            data += in.read().asInstanceOf[Char]
+          }
+          print("DATA FROM POST:")
+          println(data) // NOTE: sanity logging
+          params = getParams(data, "&", "=")
+          protocol(1).substring(protocol(1).indexOf('/'))
+        }
+        case _ => "_"
+      }
+
+      if (methods.contains(url)){
+        out.println(send(methods(url)(params)))
+      } else if (methods.contains("_")){
+        out.println(send(methods("_")(params)))
+      } else {
+        out.println(send(invalid(params)))
+      }
+
+      socket.close()
+      self ! PoisonPill
     }
     case err: Throwable => {
       println("Debug: something went wrong, socket wasn't passed in.")
