@@ -3,12 +3,10 @@ package com.github.kkhan01.amniscite
 import java.util.Base64
 import java.nio.charset.StandardCharsets
 import java.awt.image.BufferedImage
-import java.io.File
-import java.io.IOException
+import java.io.{File, IOException, ByteArrayOutputStream}
 import javax.imageio.ImageIO
 import java.awt.geom.AffineTransform
 import java.awt.Color
-import java.io.ByteArrayOutputStream
 import java.nio.file.{Paths, Files}
 
 import scala.concurrent.{Await, Future}
