@@ -8,10 +8,11 @@ import javax.imageio.ImageIO
 import java.awt.geom.AffineTransform
 import java.awt.Color
 import java.nio.file.{Paths, Files}
+import java.net.URL;
 
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
-import scala.util.{Failure, Success}
+import scala.util.{Try, Failure, Success}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.postfixOps
 
@@ -145,21 +146,7 @@ object Handler {
     .via(flow)
     .runWith(to_string)
 
-  def imager(params: Map[String, String]): String = {
-    if (!params.contains("filename")){
-      return "No filename provided."
-    }
-    val filename = params("filename")
-    // TODO: add more file support
-    if (!Files.exists(Paths.get(filename)) || !filename.endsWith(".png")){
-      return "Invalid file."
-    }
-
-    val imageParams = params - "filename"
-    val oplist = imageParams.getOrElse("oplist", "")
-
-    val image: BufferedImage = ImageIO.read(new File(filename));
-
+  def imageToHTML(image: BufferedImage, oplist: String): String = {
     val end_flow = if (oplist != "") oplist.split(",").foldRight(toBase64){
       (str, combined_flow) => ImageLookup.get(str).get.via(combined_flow)
     } else toBase64
@@ -167,17 +154,59 @@ object Handler {
     val processed = processImage(image, end_flow)
     val base64Image = Await.result(processed, 30 second)
     val res = s"""<html><body><img src="data:image/png;base64,${base64Image}" alt="image"></body></html>"""
-    return res
+    res
   }
 
-  def front_end(params: Map[String, String]): String = {
-    io.Source.fromFile("client/index.html").mkString
+  def image_file(params: Map[String, String]): String = {
+    if (!params.contains("filename")){
+      return "No filename provided."
+    }
+
+    val filename = params("filename")
+    if (!Files.exists(Paths.get(filename))){
+      return "file doesn't exist"
+    }
+
+    val oplist = params.getOrElse("oplist", "")
+
+    try {
+      val image = ImageIO.read(new File(filename))
+      imageToHTML(image, oplist)
+    } catch {
+      case err: Throwable => "invalid image"
+    }
+  }
+
+  def image_link(params: Map[String, String]): String = {
+    if (!params.contains("link")){
+      return "No link provided."
+    }
+
+    val link = params("link")
+    val oplist = params.getOrElse("oplist", "")
+
+    try {
+      val image = ImageIO.read(new URL(link))
+      imageToHTML(image, oplist)
+    } catch {
+      case err: Throwable => "invalid image"
+    }
+  }
+
+  def front_end_file(params: Map[String, String]): String = {
+    io.Source.fromFile("client/file.html").mkString
+  }
+
+  def front_end_link(params: Map[String, String]): String = {
+    io.Source.fromFile("client/link.html").mkString
   }
 
   def setup(server: com.github.kkhan01.amniservo.Amniservo) = {
     server.add("/reverseText", "GET", reverseText)
     server.add("/log", "POST", log)
-    server.add("/imager", "GET", imager)
-    server.add("/front_end", "GET", front_end)
+    server.add("/image_file", "GET", image_file)
+    server.add("/image_link", "GET", image_link)
+    server.add("/file", "GET", front_end_file)
+    server.add("/link", "GET", front_end_link)
   }
 }

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+  <body>
+
+    <h1>Submit Photo</h1>
+
+    <h3 id="status">Select image to upload</h3>
+
+    <form id="imageUpload" action="image_file" method="get">
+      <br>
+      Insert File Name: <input type="text" name="filename" id="filename">
+      <input type="submit" value="Upload Image" name="submit">
+    </form>
+
+    <br>
+    <span> Current list of operations: <span id="oplist"> </span> </span>
+    <br>
+    <br>
+    <span> Click buttons to add operations: </span>
+    <button id="flip_vertical">flip_vertical</button>
+    <button id="flip_horizontal">flip_horizontal</button>
+    <button id="rotate_180">rotate_180</button>
+    <button id="rotate_90">rotate_90</button>
+    <button id="grayscale">grayscale</button>
+    <button id="invert">invert</button>
+    <br>
+
+    <div class="output">
+      <h4>Output</h4>
+      <p id="output">Upload Image to See Output</p>
+    </div>
+
+  </body>
+
+  <script type="text/javascript">
+    var oplist = [];
+    var buttons = document.getElementsByTagName("button");
+
+    for (var i = 0; i < buttons.length; i++) {
+      buttons[i].addEventListener('click', function (e) {
+        oplist.push(e.target.id);
+        document.getElementById("oplist").innerHTML = oplist.toString();
+      });
+    }
+
+    document.forms['imageUpload'].addEventListener('submit', (event) => {
+      event.preventDefault();
+
+      var status = document.getElementById('status');
+      var output = document.getElementById('output');
+
+      status.innerHTML = 'Uploading';
+      output.innerHTML = '';
+
+      var filename = document.getElementById("filename").value
+      var fquery = filename == "" ? "" : "&filename=" + filename
+
+      fetch(event.target.action + "?oplist=" + oplist.toString() + fquery, {
+        method: 'GET',
+      }).then((resp) => {
+        return resp.text();
+      }).then((body) => {
+        console.log(body);
+        status.innerHTML = 'Converted';
+        output.innerHTML = body;
+      }).catch((error) => {
+        status.innerHTML = error;
+        output.innerHTML = '';
+      });
+    });
+  </script>
+</html>
