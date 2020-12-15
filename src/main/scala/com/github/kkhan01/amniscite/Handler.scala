@@ -158,22 +158,28 @@ object Handler {
     }
 
     val imageParams = params - "filename"
-    val oplist = imageParams.map { case (k,v) => k}
+    val oplist = imageParams.getOrElse("oplist", "")
 
     val image: BufferedImage = ImageIO.read(new File(filename));
 
-    val end_flow = oplist.foldRight(toBase64){
+    val end_flow = if (oplist != "") oplist.split(",").foldRight(toBase64){
       (str, combined_flow) => ImageLookup.get(str).get.via(combined_flow)
-    }
+    } else toBase64
+
     val processed = processImage(image, end_flow)
     val base64Image = Await.result(processed, 30 second)
     val res = s"""<html><body><img src="data:image/png;base64,${base64Image}" alt="image"></body></html>"""
     return res
   }
 
+  def front_end(params: Map[String, String]): String = {
+    io.Source.fromFile("client/index.html").mkString
+  }
+
   def setup(server: com.github.kkhan01.amniservo.Amniservo) = {
     server.add("/reverseText", reverseText)
     server.add("/log", log)
     server.add("/imager", imager)
+    server.add("/front_end", front_end)
   }
 }
