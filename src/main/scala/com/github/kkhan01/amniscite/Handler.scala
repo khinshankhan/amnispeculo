@@ -9,6 +9,7 @@ import javax.imageio.ImageIO
 import java.awt.geom.AffineTransform
 import java.awt.Color
 import java.io.ByteArrayOutputStream
+import java.nio.file.{Paths, Files}
 
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
@@ -91,7 +92,18 @@ object Handler {
     .runWith(to_string)
 
   def imager(params: Map[String, String]): String = {
-    val image: BufferedImage = ImageIO.read(new File("/home/shan/sandbox/fantasy-jellyfish.png"));
+    if (!params.contains("filename")){
+      return "No filename provided."
+    }
+    val filename = params("filename")
+    // TODO: add more file support
+    if (!Files.exists(Paths.get(filename)) || !filename.endsWith(".png")){
+      return "Invalid file."
+    }
+
+    val imageParams = params - "filename"
+
+    val image: BufferedImage = ImageIO.read(new File(filename));
     val processed = processImage(image)
     val base64Image = Await.result(processed, 30 second)
     val res = s"""<html><body><img src="data:image/png;base64,${base64Image}" alt="image"></body></html>"""
