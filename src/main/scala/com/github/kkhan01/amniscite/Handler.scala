@@ -177,9 +177,9 @@ object Handler {
   }
 
   def setup(server: com.github.kkhan01.amniservo.Amniservo) = {
-    server.add("/reverseText", reverseText)
-    server.add("/log", log)
-    server.add("/imager", imager)
-    server.add("/front_end", front_end)
+    server.add("/reverseText", "GET", reverseText)
+    server.add("/log", "POST", log)
+    server.add("/imager", "GET", imager)
+    server.add("/front_end", "GET", front_end)
   }
 }
