@@ -53,7 +53,7 @@
       output.innerHTML = '';
 
       var link = document.getElementById("link").value
-      var lquery = link == "" ? "" : "&link=" + link
+      var lquery = link == "" ? "" : "&link=" + encodeURIComponent(link)
 
       fetch(event.target.action + "?oplist=" + oplist.toString() + lquery, {
         method: 'GET',

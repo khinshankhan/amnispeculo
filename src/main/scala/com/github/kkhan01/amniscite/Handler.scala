@@ -8,7 +8,7 @@ import javax.imageio.ImageIO
 import java.awt.geom.AffineTransform
 import java.awt.Color
 import java.nio.file.{Paths, Files}
-import java.net.URL;
+import java.net.{URL, URLDecoder}
 
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
@@ -201,7 +201,7 @@ object Handler {
       return "No link provided."
     }
 
-    val link = params("link")
+    val link = URLDecoder.decode(params("link"), "UTF-8")
     val oplist = params.getOrElse("oplist", "")
 
     try {
