@@ -24,49 +24,60 @@
     <button id="grayscale">grayscale</button>
     <button id="invert">invert</button>
     <br>
+    <br>
+    <span> Click to clear operation list: </span>
+    <button id="clear">clear</button>
 
     <div class="output">
       <h4>Output</h4>
       <p id="output">Upload Image to See Output</p>
     </div>
 
-  </body>
+    <script type="text/javascript">
+      var oplist = [];
+      var buttons = document.getElementsByTagName("button");
 
-  <script type="text/javascript">
-    var oplist = [];
-    var buttons = document.getElementsByTagName("button");
-
-    for (var i = 0; i < buttons.length; i++) {
-      buttons[i].addEventListener('click', function (e) {
+      function add_to_oplist(e) {
         oplist.push(e.target.id);
         document.getElementById("oplist").innerHTML = oplist.toString();
+      }
+
+      for (var i = 0; i < buttons.length; i++) {
+        buttons[i].addEventListener('click', add_to_oplist);
+      }
+
+      document.getElementById("clear").removeEventListener('click', add_to_oplist);
+      document.getElementById("clear").addEventListener('click', function() {
+        oplist = [];
+        document.getElementById("oplist").innerHTML = oplist.toString();
       });
-    }
 
-    document.forms['imageUpload'].addEventListener('submit', (event) => {
-      event.preventDefault();
+      document.forms['imageUpload'].addEventListener('submit', (event) => {
+        event.preventDefault();
 
-      var status = document.getElementById('status');
-      var output = document.getElementById('output');
+        var status = document.getElementById('status');
+        var output = document.getElementById('output');
 
-      status.innerHTML = 'Uploading';
-      output.innerHTML = '';
-
-      var filename = document.getElementById("filename").value
-      var fquery = filename == "" ? "" : "&filename=" + filename
-
-      fetch(event.target.action + "?oplist=" + oplist.toString() + fquery, {
-        method: 'GET',
-      }).then((resp) => {
-        return resp.text();
-      }).then((body) => {
-        console.log(body);
-        status.innerHTML = 'Converted';
-        output.innerHTML = body;
-      }).catch((error) => {
-        status.innerHTML = error;
+        status.innerHTML = 'Uploading';
         output.innerHTML = '';
+
+        var filename = document.getElementById("filename").value
+        var fquery = filename == "" ? "" : "&filename=" + filename
+
+        fetch(event.target.action + "?oplist=" + oplist.toString() + fquery, {
+          method: 'GET',
+        }).then((resp) => {
+          return resp.text();
+        }).then((body) => {
+          console.log(body);
+          status.innerHTML = 'Converted';
+          output.innerHTML = body;
+        }).catch((error) => {
+          status.innerHTML = error;
+          output.innerHTML = '';
+        });
       });
-    });
-  </script>
+    </script>
+
+  </body>
 </html>
