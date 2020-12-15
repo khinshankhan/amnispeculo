@@ -1,7 +1,8 @@
 package com.github.kkhan01.amniservo.actors
 
 import java.net.Socket
-import java.io.{PrintStream, BufferedReader, InputStreamReader, BufferedSource}
+import java.io.{PrintStream, BufferedReader, InputStreamReader}
+import scala.io.BufferedSource
 
 import akka.actor.{Actor, PoisonPill, Props}
 
