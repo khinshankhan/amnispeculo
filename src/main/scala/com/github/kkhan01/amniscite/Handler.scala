@@ -26,6 +26,7 @@ import com.github.kkhan01.amniservo.Amniservo
 object Handler {
   implicit val system: ActorSystem = ActorSystem()
   implicit val materializer: ActorMaterializer = ActorMaterializer()
+  val ImageLookup = Map("rotate_180" -> rotate_180, "grayscale" -> grayscale)
 
   def reverseText(params: Map[String, String]): String = {
     if (params.contains("input")) {
@@ -85,10 +86,9 @@ object Handler {
 
   val to_string = Sink.fold[String, String]("")(_ + _)
 
-  def processImage(image: BufferedImage): Future[String] = Source
+  def processImage(image: BufferedImage, flow: Flow[BufferedImage,String,akka.NotUsed]): Future[String] = Source
     .single(image)
-    .via(grayscale)
-    .via(toBase64)
+    .via(flow)
     .runWith(to_string)
 
   def imager(params: Map[String, String]): String = {
@@ -102,9 +102,14 @@ object Handler {
     }
 
     val imageParams = params - "filename"
+    val oplist = imageParams.map { case (k,v) => k}
 
     val image: BufferedImage = ImageIO.read(new File(filename));
-    val processed = processImage(image)
+
+    val end_flow = oplist.foldRight(toBase64){
+      (str, combined_flow) => ImageLookup.get(str).get.via(combined_flow)
+    }
+    val processed = processImage(image, end_flow)
     val base64Image = Await.result(processed, 30 second)
     val res = s"""<html><body><img src="data:image/png;base64,${base64Image}" alt="image"></body></html>"""
     return res
