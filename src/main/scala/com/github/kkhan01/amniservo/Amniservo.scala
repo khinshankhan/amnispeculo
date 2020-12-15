@@ -4,17 +4,21 @@ import java.net.{ServerSocket, Socket}
 
 import akka.actor.{Actor, ActorSystem, Props}
 
-import com.github.kkhan01.amniservo.actors.ConnectionActor
+import com.github.kkhan01.amniservo.actors.ValidationActor
 
 class Amniservo {
-  var methods = Map[String, (Map[String, String]) => String]()
+  var routes = Map[String, Map[String, (Map[String, String]) => String]]()
 
-  def add(key: String, value: (Map[String, String]) => String): Unit = {
-    if (methods.contains(key)) {
-      printf("Debug: Failed to add key: %s\n", key)
+  def add(route: String, method: String, fn: (Map[String, String]) => String): Unit = {
+    if (routes.contains(route)) {
+      if (routes(route).contains(method)){
+        throw new Exception("Duplicated route detected.")
+      } else {
+        routes = routes + (route -> (routes(route) + (method -> fn)))
+      }
     }
     else {
-      methods = methods + (key -> value)
+      routes = routes + (route -> Map(method -> fn))
     }
   }
 
@@ -22,11 +26,11 @@ class Amniservo {
     val system = ActorSystem("ConnectionSystem")
 
     val PORT = 9999
-    val bind: java.net.ServerSocket = new ServerSocket(PORT)
+    val bind: ServerSocket = new ServerSocket(PORT)
 
     while (true) {
-      val connection: java.net.Socket = bind.accept()
-      val actor = system.actorOf(Props(classOf[ConnectionActor], methods))
+      val connection: Socket = bind.accept()
+      val actor = system.actorOf(Props(classOf[ValidationActor], routes))
       actor ! connection
     }
   }
