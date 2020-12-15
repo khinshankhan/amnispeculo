@@ -4,7 +4,7 @@
 
     <h1>Submit Photo</h1>
 
-    <h3 id="status">Select image to upload</h3>
+    <h3 id="status">Select image to transform</h3>
 
     <form id="imageUpload" action="image_file" method="get">
       <br>
@@ -30,7 +30,7 @@
 
     <div class="output">
       <h4>Output</h4>
-      <p id="output">Upload Image to See Output</p>
+      <p id="output">Transform Image to See Output</p>
     </div>
 
     <script type="text/javascript">
@@ -58,7 +58,7 @@
         var status = document.getElementById('status');
         var output = document.getElementById('output');
 
-        status.innerHTML = 'Uploading';
+        status.innerHTML = 'Transforming';
         output.innerHTML = '';
 
         var filename = document.getElementById("filename").value

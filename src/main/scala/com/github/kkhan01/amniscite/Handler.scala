@@ -25,7 +25,14 @@ import com.github.kkhan01.amniservo.Amniservo
 object Handler {
   implicit val system: ActorSystem = ActorSystem()
   implicit val materializer: ActorMaterializer = ActorMaterializer()
-  val ImageLookup = Map("flip_vertical" -> flip_vertical, "flip_horizontal" -> flip_horizontal, "rotate_180" -> rotate_180, "rotate_90" -> rotate_90, "grayscale" -> grayscale, "invert" -> invert)
+  val ImageLookup = Map(
+    "flip_vertical" -> flip_vertical,
+    "flip_horizontal" -> flip_horizontal,
+    "rotate_180" -> rotate_180,
+    "rotate_90" -> rotate_90,
+    "grayscale" -> grayscale,
+    "invert" -> invert
+  )
 
   def reverseText(params: Map[String, String]): String = {
     if (params.contains("input")) {
@@ -160,10 +167,11 @@ object Handler {
 
   val to_string = Sink.fold[String, String]("")(_ + _)
 
-  def processImage(image: BufferedImage, flow: Flow[BufferedImage,String,akka.NotUsed]): Future[String] = Source
-    .single(image)
-    .via(flow)
-    .runWith(to_string)
+  def processImage(image: BufferedImage, flow: Flow[BufferedImage,String,akka.NotUsed]): Future[String] =
+    Source
+      .single(image)
+      .via(flow)
+      .runWith(to_string)
 
   def imageToHTML(image: BufferedImage, oplist: String): String = {
     val end_flow = if (oplist != "") oplist.split(",").foldRight(toBase64){
