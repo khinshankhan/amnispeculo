@@ -26,7 +26,7 @@ import com.github.kkhan01.amniservo.Amniservo
 object Handler {
   implicit val system: ActorSystem = ActorSystem()
   implicit val materializer: ActorMaterializer = ActorMaterializer()
-  val ImageLookup = Map("rotate_180" -> rotate_180, "grayscale" -> grayscale)
+  val ImageLookup = Map("flip_vertical" -> flip_vertical, "flip_horizontal" -> flip_horizontal, "rotate_180" -> rotate_180, "rotate_90" -> rotate_90, "grayscale" -> grayscale, "invert" -> invert)
 
   def reverseText(params: Map[String, String]): String = {
     if (params.contains("input")) {
@@ -44,12 +44,50 @@ object Handler {
     return str
   }
 
+  def flip_vertical = Flow[BufferedImage].map(
+    img => {
+      val width = img.getWidth()
+      val height = img.getHeight()
+      val ret = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB)
+      val g = ret.createGraphics()
+      g.drawImage(img, 0, 0, width, height, 0, height, width, 0, null);
+      g.dispose()
+      ret
+    })
+
+  def flip_horizontal = Flow[BufferedImage].map(
+    img => {
+      val width = img.getWidth()
+      val height = img.getHeight()
+      val ret = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB)
+      val g = ret.createGraphics()
+      g.drawImage(img, 0, 0, width, height, width, 0, 0, height, null);
+      g.dispose()
+      ret
+    })
+
   def rotate_180 = Flow[BufferedImage].map(
     img => {
       val width = img.getWidth()
       val height = img.getHeight()
       val at = AffineTransform.getRotateInstance(Math.PI, width/2, height/2)
       val ret = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB)
+      val g = ret.createGraphics()
+      g.transform(at)
+      g.drawImage(img, 0, 0, null)
+      g.dispose()
+      ret
+    })
+
+  def rotate_90 = Flow[BufferedImage].map(
+    img => {
+      val width = img.getWidth()
+      val height = img.getHeight()
+      val at = new AffineTransform()
+      at.rotate(Math.PI/2, width/2, height/2)
+      val offset = (width-height)/2
+      at.translate(offset, offset)
+      val ret = new BufferedImage(height, width, BufferedImage.TYPE_INT_ARGB)
       val g = ret.createGraphics()
       g.transform(at)
       g.drawImage(img, 0, 0, null)
@@ -64,12 +102,30 @@ object Handler {
       for { w1 <- (0 until w).toVector
             h1 <- (0 until h).toVector
       } yield {
-        val col = img.getRGB(w1, h1)
-        val red =  (col & 0xff0000) / 65536
-        val green = (col & 0xff00) / 256
-        val blue = (col & 0xff)
+        val rgba = img.getRGB(w1, h1)
+        val col = new Color(rgba, true)
+        val red =  col.getRed()
+        val green = col.getGreen()
+        val blue = col.getBlue()
         val graycol = (red + green + blue) / 3
         img.setRGB(w1, h1, new Color(graycol, graycol, graycol).getRGB)
+      }
+      img
+    })
+
+  def invert = Flow[BufferedImage].map(
+    img => {
+      val w = img.getWidth
+      val h = img.getHeight
+      for { w1 <- (0 until w).toVector
+            h1 <- (0 until h).toVector
+      } yield {
+        val rgba = img.getRGB(w1, h1)
+        val col = new Color(rgba, true)
+        val red =  255 - col.getRed()
+        val green = 255 - col.getGreen()
+        val blue = 255 - col.getBlue()
+        img.setRGB(w1, h1, new Color(red, green, blue).getRGB)
       }
       img
     })
