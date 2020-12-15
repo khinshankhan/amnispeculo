@@ -3,11 +3,11 @@ package com.github.kkhan01.amniservo.actors
 import java.net.Socket
 import java.io.PrintStream
 
+import scala.io.BufferedSource
+
 import akka.actor.{Actor, PoisonPill}
 
-class ConnectionActor(fn: (Map[String, String]) => String, params: Map[String, String]) extends Actor {
-  var out: java.io.PrintStream = _
-
+class StreamConnectionActor(fn: (Map[String, String]) => String, params: Map[String, String]) extends Actor {
   override def preStart(): Unit = {
     println("Started processing connection.")
   }
@@ -16,23 +16,26 @@ class ConnectionActor(fn: (Map[String, String]) => String, params: Map[String, S
     println("Ended processing connection.")
   }
 
-  // TODO: implement real http access codes
-  def respond(s: String): String = "HTTP/1.0 200 OK\n\r\n" + s
-
-  def send(s: String): Unit = out.println(respond(s))
-
   def receive = {
     case socket: Socket => {
-      out = new PrintStream(socket.getOutputStream())
+      val in: Iterator[String] = new BufferedSource(socket.getInputStream()).getLines()
+      val out: java.io.PrintStream = new PrintStream(socket.getOutputStream())
+      var messages = ""
 
       try {
-        val fnRes = fn(params)
-        send(fnRes)
+        while(true){
+          val input = in.next()
+          messages += input
+          println(messages)
+          val args = params + ("input" -> input)
+          out.println(fn(args))
+          out.flush()
+        }
       } catch {
+        case err: java.util.NoSuchElementException => {}
         case err: Throwable => {
           println("Debug: error in connection actor:")
           println(err)
-          send("Something went wrong while processing.")
         }
       }
 

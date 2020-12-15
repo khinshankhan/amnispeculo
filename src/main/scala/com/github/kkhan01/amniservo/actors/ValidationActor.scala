@@ -2,11 +2,12 @@ package com.github.kkhan01.amniservo.actors
 
 import java.net.Socket
 import java.io.{PrintStream, BufferedReader, InputStreamReader}
+
 import scala.io.BufferedSource
 
 import akka.actor.{Actor, PoisonPill, Props}
 
-import com.github.kkhan01.amniservo.actors.ConnectionActor
+import com.github.kkhan01.amniservo.actors.{RestConnectionActor, StreamConnectionActor}
 import com.github.kkhan01.amniservo.util.Helpers
 
 class ValidationActor(routes: Map[String, Map[String, (Map[String, String]) => String]]) extends Actor {
@@ -71,6 +72,7 @@ class ValidationActor(routes: Map[String, Map[String, (Map[String, String]) => S
           }
           params = params + ("file" -> data)
         }
+        case "STREAM" => {}
         case _ => url = "_"
       }
 
@@ -83,8 +85,13 @@ class ValidationActor(routes: Map[String, Map[String, (Map[String, String]) => S
         Helpers.invalid _
       }
 
-      val actor = context.system.actorOf(Props(classOf[ConnectionActor], fn, params))
-      actor ! socket
+      if (method != "STREAM"){
+        val actor = context.system.actorOf(Props(classOf[RestConnectionActor], fn, params))
+        actor ! socket
+      } else {
+        val actor = context.system.actorOf(Props(classOf[StreamConnectionActor], fn, params))
+        actor ! socket
+      }
 
       self ! PoisonPill
     }

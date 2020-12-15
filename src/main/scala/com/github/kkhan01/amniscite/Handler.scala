@@ -43,6 +43,25 @@ object Handler {
     return str
   }
 
+  def chat(params: Map[String, String]): String = {
+    if (params.contains("input")) {
+      return "SERVER:" + params("input")
+    }
+    else {
+      throw new Exception("No input string found.");
+    }
+  }
+
+  def chatReverse(params: Map[String, String]): String = {
+    if (params.contains("input")) {
+      return "SERVER:" + params("input").reverse
+    }
+    else {
+      throw new Exception("No input string found.");
+    }
+  }
+
+
   def flip_vertical = Flow[BufferedImage].map(
     img => {
       val width = img.getWidth()
@@ -204,6 +223,8 @@ object Handler {
   def setup(server: com.github.kkhan01.amniservo.Amniservo) = {
     server.add("/reverseText", "GET", reverseText)
     server.add("/log", "POST", log)
+    server.add("/chat", "STREAM", chat)
+    server.add("/chatReverse", "STREAM", chatReverse)
     server.add("/image_file", "GET", image_file)
     server.add("/image_link", "GET", image_link)
     server.add("/file", "GET", front_end_file)
